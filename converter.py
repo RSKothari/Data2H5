@@ -6,6 +6,7 @@ Created on Sat Mar 27 08:33:52 2021
 """
 import os
 import h5py
+import tqdm
 import imageio
 import itertools
 import multiprocessing as mp
@@ -49,29 +50,48 @@ class capture_within_H5():
         else:
             return []
 
-    def log_sample(self, datum):
+    def log_sample(self, h5_obj, datum):
         key, data = datum
-        self.h5_obj.create_dataset(key,
-                                   data.shape,
-                                   data=data,
-                                   chunks=data.shape,
-                                   compression='lzf')
+        h5_obj.create_dataset(key,
+                              data.shape,
+                              data=data,
+                              dtype=str(data.dtype),
+                              chunks=True,
+                              compression='lzf')
 
     def read_write(self, ):
-        self.h5_obj = h5py.File(self.args_dict['path_output'], 'w')
         # create a pool
         if self.args_dict['single_process']:
-            _ = list(map(self.read_function, self.list_of_valid_datum))
+            _ = list(map(self.read_function,
+                         tqdm.tqdm(self.list_of_valid_datum)))
         else:
+
+            h5_obj = h5py.File(self.args_dict['path_output'], 'a')
+
             pool = mp.Pool(processes=mp.cpu_count())
-            _ = pool.map_async(self.read_function,
-                               self.list_of_valid_datum,
-                               callback=self.log_sample)
+            num_entries = len(self.list_of_valid_datum)
+            num_per_cyc = 4*mp.cpu_count()
+
+            # Read data in splits so that it is easy on the RAM
+            for idx in tqdm.tqdm(range(1 + num_entries // num_per_cyc)):
+
+                start_loc = max([idx * num_per_cyc, 0])
+                end_loc = min([(idx + 1) * num_per_cyc, num_entries])
+
+                results = pool.map(self.read_function,
+                                   self.list_of_valid_datum[start_loc:end_loc])
+
+                # Write out results as a single process
+                for result in results:
+                    self.log_sample(h5_obj, result)
+
+            h5_obj.close()
+
             pool.close()
             pool.join()
-        self.h5_obj.close()
 
     def read_function(self, path_sample):
+
         if self.args_dict['custom_read_func']:
             from my_functions import my_read
             data = my_read(path_sample)
@@ -79,9 +99,14 @@ class capture_within_H5():
             data = self.default_reader(path_sample)
 
         if self.args_dict['single_process']:
-            self.log_sample(data)
+
+            h5_obj = h5py.File(self.args_dict['path_output'], 'a')
+            self.log_sample(h5_obj, data)
+            h5_obj.close()
+
             return True
         else:
+
             return data
 
     def default_reader(self, path_sample):

@@ -28,6 +28,9 @@ class benchmark(torch.utils.data.Dataset):
 
         with h5py.File(path_h5, 'r') as h5_obj:
             self.file_list = list(h5_obj.keys())
+            
+    def __del__(self, ):
+        self.h5_obj.close()
 
     def __len__(self, ):
         return len(self.file_list)
@@ -56,9 +59,9 @@ if __name__ == '__main__':
     bench_obj = benchmark(args['path_output'], args['path_images'])
     loader = torch.utils.data.DataLoader(bench_obj,
                                          batch_size=48,
-                                         num_workers=0)
+                                         num_workers=4)
 
-    for epoch in range(2):
+    for epoch in range(3):
         time_elapsed = []
         start_time = time.time()
         for bt, data in enumerate(tqdm.tqdm(loader)):
@@ -67,7 +70,7 @@ if __name__ == '__main__':
             start_time = time.time()
 
         time_elapsed = np.array(time_elapsed)
-        t_mean = np.mean(time_elapsed)
+        t_mean = 1/np.mean(time_elapsed)
         t_std = np.std(1/time_elapsed)
         print('Ep: {}. Bts/Sec. Mean: {}. STD: {}'.format(epoch,
                                                           np.round(t_mean, 2),

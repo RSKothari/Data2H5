@@ -7,8 +7,9 @@ Created on Sat Mar 27 10:43:03 2021
 
 
 def my_read(path_sample):
-    image = []  # Loading logic
-    return path_sample, image
+    # Return datum as a numpy array
+    datum = []  # Loading logic
+    return path_sample, datum
 
 
 if __name__ == '__main__':
