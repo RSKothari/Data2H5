@@ -12,5 +12,11 @@ def my_read(path_sample):
     return path_sample, datum
 
 
+def my_prune(filename_str, ext_str):
+    # Logic to verify if the extension type is present
+    # within the filename
+    return True
+
+
 if __name__ == '__main__':
     print('Entry point script is converter.py. Follow instructions in README.')

@@ -19,13 +19,20 @@ def join_path(path_left, path_right):
 
 
 class capture_within_H5():
+    '''
+    A class to find all files with the given extension and store them
+    into a H5 file.
+    '''
     def __init__(self, args):
-        self.args_dict = vars(args)
+        # Initialize the converter and generate a list of valid files
+        self.args_dict = args
         root_dir_file_list = self.create_tree()
         list_of_valid_datum = self.prune_tree(root_dir_file_list)
         self.list_of_valid_datum = self.generate_full_path(list_of_valid_datum)
 
     def generate_full_path(self, paths):
+        # Given a list of os.walk tuples, append the root path
+        # to all individual relative paths
         full_paths = []
         for path in paths:
             vals = [join_path(path[0], ele) for ele in path[1]]
@@ -33,11 +40,14 @@ class capture_within_H5():
         return list(itertools.chain(*full_paths))
 
     def create_tree(self):
+        # Generate a tree of a files in a given directory
         return list(os.walk(self.args_dict['path_images']))
 
     def prune_tree(self, tree):
+        # Prune a tree by only accepting files which match the
+        # provided file extension
         list_of_valid_datum = []
-        for (dir_, dirs, files) in tree:
+        for (dir_, _, files) in tree:
             valid_files = self.prune_files(files)
             if any(valid_files):
                 rel_root = os.path.relpath(dir_, self.args_dict['path_images'])
@@ -46,7 +56,12 @@ class capture_within_H5():
 
     def prune_files(self, files):
         if any(files):
-            return [fi for fi in files if fi.endswith(self.args_dict['ext'])]
+            if self.args_dict['custom_prune_func']:
+                return [fi for fi in files
+                        if self.default_prune(fi, self.args_dict['ext'])]
+            else:
+                return [fi for fi in files
+                        if my_prune(fi, self.args_dict['ext'])]
         else:
             return []
 
@@ -93,7 +108,6 @@ class capture_within_H5():
     def read_function(self, path_sample):
 
         if self.args_dict['custom_read_func']:
-            from my_functions import my_read
             data = my_read(path_sample)
         else:
             data = self.default_reader(path_sample)
@@ -106,18 +120,32 @@ class capture_within_H5():
 
             return True
         else:
-
             return data
 
     def default_reader(self, path_sample):
+        # Read operation for jpg or png images
         path_image = join_path(self.args_dict['path_images'], path_sample)
         image = imageio.imread(path_image)
         return path_sample, image
+    
+    def default_prune(self, filename_str, ext_str):
+        # Given an input file name, return true if they match else False
+        return filename_str.endswith(ext_str)
 
 
 if __name__ == '__main__':
-    args = make_args()
+    args = vars(make_args())
     obj = capture_within_H5(args)
+    
+    if args['custom_read_func']:
+        from my_functions import my_read
+
+    if args['custom_prune_func']:
+        from my_functions import my_prune
+
+    # %% Delete and create a new H5 file
+    h5_obj = h5py.File(args.path_output, 'w')
+    h5_obj.close()
 
     # %% Begin reading and writing to H5
     obj.read_write()
