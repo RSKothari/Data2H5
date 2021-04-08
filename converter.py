@@ -58,10 +58,10 @@ class capture_within_H5():
         if any(files):
             if self.args_dict['custom_prune_func']:
                 return [fi for fi in files
-                        if self.default_prune(fi, self.args_dict['ext'])]
+                        if my_prune(fi, self.args_dict['ext'])]
             else:
                 return [fi for fi in files
-                        if my_prune(fi, self.args_dict['ext'])]
+                        if self.default_prune(fi, self.args_dict['ext'])]
         else:
             return []
 
@@ -71,7 +71,7 @@ class capture_within_H5():
                               data.shape,
                               data=data,
                               dtype=str(data.dtype),
-                              chunks=True,
+                              chunks=data.shape,
                               compression='lzf')
 
     def read_write(self, ):
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         from my_functions import my_prune
 
     # %% Delete and create a new H5 file
-    h5_obj = h5py.File(args.path_output, 'w')
+    h5_obj = h5py.File(args['path_output'], 'w')
     h5_obj.close()
 
     # %% Begin reading and writing to H5

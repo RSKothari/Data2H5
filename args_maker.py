@@ -31,7 +31,7 @@ def make_args():
                                default='D:/Datasets/Gaze360/imgs')
     required_args.add_argument('--path_output', required=False,
                                help='abs path to output H5 file',
-                               default='D:/exp.h5')
+                               default='D:/exp.h5') #'C:/Users/Rudra/Downloads/exp.h5'
     args = parser.parse_args()
     pprint(vars(args))
 

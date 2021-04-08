@@ -42,7 +42,8 @@ class benchmark(torch.utils.data.Dataset):
             # Step #2: Create a H5 object within the __getitem__ call
             # This creates a H5 reader object for each worker.
             if not hasattr(self, 'h5_obj'):
-                self.h5_obj = h5py.File(self.path_h5, mode='r', swmr=True)
+                self.h5_obj = h5py.File(self.path_h5, mode='r', swmr=True,
+                                        rdcc_nbytes=10485760)
                 
             # Reading a datum from the H5 file
             datum = self.h5_obj[entry_str][:]
@@ -66,11 +67,11 @@ if __name__ == '__main__':
 
     args = vars(make_args())
 
-    bench_obj = benchmark(args['path_output'], args['path_images'])
+    bench_obj = benchmark(args['path_output'], args['path_images'], mode='H5')
     loader = torch.utils.data.DataLoader(bench_obj,
                                          shuffle=True,
                                          batch_size=48,
-                                         num_workers=0)
+                                         num_workers=4)
 
     for epoch in range(3):
         time_elapsed = []
